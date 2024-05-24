@@ -1,0 +1,108 @@
+version: "1"
+services:
+  # kafka:
+  #   container_name: kafka
+  #   image: "bitnami/kafka:latest"
+  #   ports:
+  #     - "9092:9092"
+  #   networks:
+  #     - gateway
+  #   environment:
+  #     - KAFKA_CFG_NODE_ID=0
+  #     - KAFKA_CFG_PROCESS_ROLES=controller,broker
+  #     - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+  #     - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+  #     - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+  #     - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+  restproxy:
+    image: confluentinc/cp-kafka-rest:latest
+    networks:
+      - gateway
+    ports:
+      - "8086:8086"
+    environment:
+      KAFKA_REST_HOST_NAME: restproxy
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8086
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    networks:
+      - gateway
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka:2.11-1.1.1
+    ports:
+      - "9092:9092"
+    networks:
+      - gateway
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_CREATE_TOPICS: "test:1:1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - gateway
+    restart: always
+    depends_on:
+      - loan-processing
+      - notification-service
+      - kafka
+
+  loan-processing:
+    container_name: loan-processing
+    build: ./loan_processing_manager
+    ports:
+      - "3000:3000"
+    networks:
+      - gateway
+    restart: always
+    depends_on:
+      - kafka
+
+  data-extraction:
+    container_name: data-extraction
+    build: ./data_extraction_service
+    ports:
+      - "3001:3000"
+    networks:
+      - gateway
+    restart: always
+    depends_on:
+      - kafka
+
+  risk_managment_service:
+    container_name: risk_managment_service
+    build: ./risk_managment_service
+    ports:
+      - "3002:3000"
+    networks:
+      - gateway
+    restart: always
+    depends_on:
+      - kafka
+
+  notification-service:
+    container_name: notification-service
+    build: ./notification_service
+    ports:
+      - "3003:3000"
+    networks:
+      - gateway
+    restart: always
+    depends_on:
+      - kafka
+networks:
+  gateway:
+    # driver: bridge

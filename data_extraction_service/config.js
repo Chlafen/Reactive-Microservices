@@ -1,6 +1,6 @@
 
 class Config{
-  static clientId = 'commercial-service'
+  static clientId = 'data-extraction'
   
   static topics = {
     LOAN_APPLICATIONS: 'loan-applications',
@@ -11,13 +11,13 @@ class Config{
     NOTIFICATIONS: 'notifications'
   }
   
-  services = {
-    dataExtraction: 'data-extraction',
-    loanApplication: 'loan-application',
+  static services = {
+    loanApplication: 'loan-processing',
+    commercial: 'commercial-service',
+    riskManagement: 'risk-management-service'
   }
   
   static kafkaBroker = 'kafka:9092'
-
   static retryInterval = 5000
 }
 

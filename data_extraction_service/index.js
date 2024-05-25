@@ -1,11 +1,16 @@
-const express = require('express');
+const Config = require('./config');
+const KafkaManager = require('./kafkaManager');
+const { handleOCRInput } = require('./consumers');
 
-const app = express();
 
-app.get('/', (req, res) => {
-  res.send('Data extraction Service is running!');
-});
+const kafka = new KafkaManager(Config.clientId, Config.kafkaBroker);
 
-app.listen(3000, () => {
-  console.log('Data extraction is running on port 3000');
-});
+kafka.createProducer();
+kafka.createConsumer(Config.clientId, [Config.topics.DATA_EXTRACTION_IN]);
+
+kafka.registerConsumerCallback(
+  Config.topics.DATA_EXTRACTION_IN,
+  (message) => handleOCRInput(kafka, message)
+);
+
+kafka.startConsumer();

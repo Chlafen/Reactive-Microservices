@@ -1,11 +1,15 @@
-const express = require('express');
+const Config = require('./config');
+const KafkaManager = require('./kafkaManager');
+const { handleScoredLoanApplication } = require('./consumers');
 
-const app = express();
+const kafka = new KafkaManager(Config.clientId, Config.kafkaBroker);
 
-app.get('/', (req, res) => {
-  res.send('Risk managment Service is running!');
-});
+kafka.createProducer();
+kafka.createConsumer(Config.clientId, [Config.topics.INITIAL_SCORING]);
 
-app.listen(3000, () => {
-  console.log('Risk managment Service is running on port 3000');
-});
+kafka.registerConsumerCallback(
+  Config.topics.INITIAL_SCORING,
+  (message) => handleScoredLoanApplication(kafka, message)
+);
+
+kafka.startConsumer();

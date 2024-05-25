@@ -1,25 +1,21 @@
-
-const clientId = 'loan-processing'
-
-const topics = {
-  LOAN_APPLICATIONS: 'loan-applications',
-  INITIAL_SCORING: 'initial-scoring',
-  APPROVAL_STATUS: 'approval-status',
-  DATA_EXTRACTION_IN: 'data-extraction-in',
-  DATA_EXTRACTION_OUT: 'data-extraction-out',
-  NOTIFICATIONS: 'notifications'
+class Config{
+  static clientId = 'loan-processing'
+  
+  static topics = {
+    LOAN_APPLICATIONS: 'loan-applications',
+    INITIAL_SCORING: 'initial-scoring',
+    APPROVAL_STATUS: 'approval-status',
+    DATA_EXTRACTION_IN: 'data-extraction-in',
+    DATA_EXTRACTION_OUT: 'data-extraction-out',
+    NOTIFICATIONS: 'notifications'
+  }
+  
+  static services = {
+    commercial: 'commercial-service',
+  }
+  
+  static kafkaBroker = 'kafka:9092'
+  static retryInterval = 5000
 }
 
-const services = {
-  commercial: 'commercial-service',
-}
-
-const kafkaBroker = 'kafka:9092'
-
-
-module.exports = {
-  clientId,
-  topics,
-  kafkaBroker,
-  services
-}
+module.exports = Config;

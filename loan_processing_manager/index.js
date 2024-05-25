@@ -1,43 +1,25 @@
 const express = require('express');
-const config = require('./config');
-const kafkaManager = require('./kafkaManager');
+const Config = require('./config');
+const KafkaManager = require('./kafkaManager');
 const bodyParser = require('body-parser');
+const { generateLoanApplication } = require('./helpers');
+
+const kafka = new KafkaManager(Config.clientId, Config.kafkaBroker);
+kafka.createProducer();
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-const kafka = kafkaManager.connect(config.clientId, config.kafkaBroker);
-const producer = kafkaManager.createProducer(kafka);
-const admin = kafkaManager.admin(kafka);
-
-admin.listTopics()
-kafkaManager.listTopics(admin);
-
-kafkaManager.initTopics(admin, [{
-    topic: config.topics.LOAN_APPLICATIONS,
-}]);
 
 app.post('/process', (req, res) => {
   console.log('New loan application request received');
 
-  const email = req.body.email;
-  const fileUrl = req.body.fileUrl;
-
-  const messageContent = {
-    producer: config.clientId,
-    destination: config.services.commercial,
-    body: {
-      email: email,
-      fileUrl: fileUrl
-    }
-  }
-  const message = {
-    value: Buffer.from(JSON.stringify(messageContent))
-  }
+  const message = generateLoanApplication(req.body.email, req.body.fileUrl)
   
-  kafkaManager.publish(producer, config.topics.LOAN_APPLICATIONS, [message])
+  kafka.publish(Config.topics.LOAN_APPLICATIONS, [message])
     .then(() => {
-      res.send('Loan application is being processed');
+      console.log('Loan application published to loan applications topic');
+      res.send('Your Loan application is being processed');
     })
     .catch((err) => {
       console.error(err);
@@ -45,6 +27,7 @@ app.post('/process', (req, res) => {
     });
 });
 
+
 app.listen(3000, () => {
-  console.log('Loan Processing Manager is running')
+  console.log('Loan Processing Manager server is running')
 });

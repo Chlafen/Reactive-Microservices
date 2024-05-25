@@ -1,61 +1,102 @@
 const Kafka = require('kafkajs');
+const Config = require('./config');
 
-const connect = (clientId, broker) => {
-  const kafka = new Kafka.Kafka({
-    clientId: clientId,
-    brokers: [broker]
-  })
-  return kafka
+class KafkaManager {
+  constructor(clientId, broker) {
+      this.kafka = new Kafka.Kafka({
+        clientId: clientId,
+        brokers: [broker]
+      });
+  
+      this.producer = null;
+  }
+
+  async checkKafkaStatus() {
+    try{
+      const admin = this.kafka.admin();
+      await admin.connect();
+      await admin.listTopics();
+      await admin.disconnect();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async createProducer() {
+    while (true) {
+      if (!await this.checkKafkaStatus()) {
+        console.log("Kafka not ready, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
+        continue;
+      }
+
+      try {
+        this.producer = this.kafka.producer({ createPartitioner: Kafka.Partitioners.LegacyPartitioner });
+        await this.producer.connect();
+        console.log("Producer is ready");
+        break;
+      } catch (error) {
+        console.log("Error in createProducer: ", error);
+      }
+    }
+  }
+
+  async createConsumer(groupId) {
+    while (true) {
+      if (!await this.checkKafkaStatus()) {
+        console.log("Kafka not ready, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
+        continue;
+      }
+      
+      try {
+        this.consumer = this.kafka.consumer({ groupId: groupId });
+        await this.consumer.connect();
+        console.log("Consumer is ready");
+        break;
+      } catch (error) {
+        console.log("Error in createConsumer: ", error);
+      }
+    }
+  }
+
+  async publish(topic, messages) {
+    await this.producer.send({
+      topic: topic,
+      messages: messages,
+    }).catch((err) => {
+      console.error("Error in publish: ", err);
+      throw err;
+    });
+  }
+
+  registerConsumerCallback(topic, callback) {
+    this.callbacks = this.callbacks || {};
+    this.callbacks[topic] = callback;
+  }
+
+  async startConsumer() {
+    // check if consumer is ready
+    while (!this.consumer) {
+      console.log("Consumer not ready, retrying...");
+      await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
+    }
+    console.log("Starting consumer");
+    
+    await this.consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        console.log("Topic:", topic, "Received message", {
+          value: message.value.toString(),
+        });
+        if(this.callbacks[topic]) {
+          this.callbacks[topic](message);
+        } else {
+          console.log("No callback registered for topic: ", topic);
+        }
+      },
+    });
+  }
 }
 
-const admin = (kafka) => {
-  return kafka.admin()
-}
-
-const listTopics = async (admin) => {
-  await admin.connect()
-  const topics = await admin.listTopics()
-  console.log(topics)
-}
-
-const initTopics = async (admin, topics) => {
-  await admin.connect()
-  await admin.createTopics({
-    topics: topics
-  })
-}
-
-const createConsumer = (kafka, topic) => {
-  return kafka.consumer({ groupId: topic })
-}
-
-const createProducer = (kafka) => {
-  return kafka.producer({ createPartitioner: Kafka.Partitioners.LegacyPartitioner })
-}
-
-const subscribe = async (consumer, topic) => {
-  await consumer.connect()
-  await consumer.subscribe({ topic: topic })
-}
-
-const publish = async (producer, topic, messages) => {
-  await producer.connect()
-  await producer.send({
-    topic: topic,
-    messages: messages,
-  })
-}
-
-
-const kafkaManager = {
-  connect,
-  createConsumer,
-  createProducer,
-  subscribe,
-  publish,
-  admin,
-  initTopics,
-  listTopics,
-};
-
-module.exports = kafkaManager;
+module.exports = KafkaManager;

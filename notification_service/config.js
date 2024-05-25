@@ -1,6 +1,6 @@
 
 class Config{
-  static clientId = 'commercial-service'
+  static clientId = 'notification-service'
   
   static topics = {
     LOAN_APPLICATIONS: 'loan-applications',

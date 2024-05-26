@@ -18,4 +18,4 @@ class Config{
   static retryInterval = 5000
 }
 
-module.exports = Config;
+module.exports = { Config };

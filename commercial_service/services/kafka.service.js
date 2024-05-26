@@ -1,9 +1,11 @@
 const Kafka = require('kafkajs');
-class KafkaManager {
+class KafkaService {
   constructor(clientId, broker) {
       this.kafka = new Kafka.Kafka({
         clientId: clientId,
-        brokers: [broker]
+        brokers: [broker],
+        logLevel: Kafka.logLevel.ERROR,
+        logCreator: (logLevel) => (logEntry) =>  0,
       });
   
       this.producer = null;
@@ -97,4 +99,6 @@ class KafkaManager {
   }
 }
 
-module.exports = KafkaManager;
+module.exports = {
+  KafkaService,
+};

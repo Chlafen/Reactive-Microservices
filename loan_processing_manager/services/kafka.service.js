@@ -1,9 +1,13 @@
 const Kafka = require('kafkajs');
-class KafkaManager {
+const { Config } = require('../config');
+
+class KafkaService {
   constructor(clientId, broker) {
       this.kafka = new Kafka.Kafka({
         clientId: clientId,
-        brokers: [broker]
+        brokers: [broker],
+        logLevel: Kafka.logLevel.ERROR,
+        logCreator: (logLevel) => (logEntry) =>  0,
       });
   
       this.producer = null;
@@ -24,11 +28,11 @@ class KafkaManager {
   async createProducer() {
     while (true) {
       if (!await this.checkKafkaStatus()) {
-        console.log("Kafka not ready, retrying in 5 seconds...");
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        console.log("Kafka not ready, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
         continue;
       }
-      
+
       try {
         this.producer = this.kafka.producer({ createPartitioner: Kafka.Partitioners.LegacyPartitioner });
         await this.producer.connect();
@@ -40,18 +44,18 @@ class KafkaManager {
     }
   }
 
-  async createConsumer(groupId, topics) {
+  async createConsumer(groupId) {
     while (true) {
       if (!await this.checkKafkaStatus()) {
-        console.log("Kafka not ready, retrying in 5 seconds...");
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        console.log("Kafka not ready, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
         continue;
       }
+      
       try {
         this.consumer = this.kafka.consumer({ groupId: groupId });
         await this.consumer.connect();
-        await this.consumer.subscribe({ topics: topics });
-        console.log("Consumer is ready, subscribed to topics: ", topics);
+        console.log("Consumer is ready");
         break;
       } catch (error) {
         console.log("Error in createConsumer: ", error);
@@ -78,7 +82,7 @@ class KafkaManager {
     // check if consumer is ready
     while (!this.consumer) {
       console.log("Consumer not ready, retrying...");
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, Config.retryInterval));
     }
     console.log("Starting consumer");
     
@@ -97,4 +101,6 @@ class KafkaManager {
   }
 }
 
-module.exports = KafkaManager;
+module.exports = {
+  KafkaService,
+};

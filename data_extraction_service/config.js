@@ -22,4 +22,6 @@ class Config{
 }
 
 
-module.exports = Config;
+module.exports = {
+  Config
+};

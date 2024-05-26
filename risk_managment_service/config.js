@@ -1,4 +1,3 @@
-
 class Config{
   static clientId = 'risk-management-service'
   
@@ -20,4 +19,6 @@ class Config{
 }
 
 
-module.exports = Config;
+module.exports = {
+  Config
+};

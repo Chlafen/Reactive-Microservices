@@ -1,5 +1,5 @@
-const Config = require('./config');
-const { approveLoan } = require('./riskService');
+const { Config } = require('../config');
+const { BankService } = require('../services');
 
 const handleScoredLoanApplication = async (kafka, message) => {
   const loanApplication = JSON.parse(message.value.toString());
@@ -14,7 +14,7 @@ const handleScoredLoanApplication = async (kafka, message) => {
     return;
   }
 
-  const isApproved = approveLoan(loanApplication.body.email, loanApplication.body.score);
+  const isApproved = BankService.approveLoan(loanApplication.body.email, loanApplication.body.score);
   await new Promise((resolve) => setTimeout(resolve, 2000));
   
   const content = {
@@ -38,7 +38,6 @@ const handleScoredLoanApplication = async (kafka, message) => {
       console.log(err);
     });
 }
-
 
 module.exports = {
   handleScoredLoanApplication

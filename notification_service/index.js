@@ -1,8 +1,8 @@
-const Config = require('./config');
-const KafkaManager = require('./kafkaManager');
+const { Config } = require('./config');
+const { KafkaService } = require('./services');
 const { handleLoanApplicationInitialScore, handleLoanApplicationStatus } = require('./consumers');
 
-const kafka = new KafkaManager(Config.clientId, Config.kafkaBroker);
+const kafka = new KafkaService(Config.clientId, Config.kafkaBroker);
 
 kafka.createProducer();
 kafka.createConsumer(Config.clientId, [Config.topics.APPROVAL_STATUS, Config.topics.INITIAL_SCORING]);

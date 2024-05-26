@@ -1,10 +1,11 @@
 const express = require('express');
-const Config = require('./config');
-const KafkaManager = require('./kafkaManager');
 const bodyParser = require('body-parser');
-const { generateLoanApplication } = require('./helpers');
 
-const kafka = new KafkaManager(Config.clientId, Config.kafkaBroker);
+const { Config } = require('./config');
+const { KafkaService, LoanService } = require('./services');
+
+const kafka = new KafkaService(Config.clientId, Config.kafkaBroker);
+const loanService = new LoanService(Config);
 kafka.createProducer();
 
 const app = express();
@@ -14,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.post('/process', (req, res) => {
   console.log('New loan application request received');
 
-  const message = generateLoanApplication(req.body.email, req.body.fileUrl)
+  const message = loanService.generateLoanApplication(req.body.email, req.body.fileUrl)
   
   kafka.publish(Config.topics.LOAN_APPLICATIONS, [message])
     .then(() => {

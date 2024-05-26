@@ -1,7 +1,7 @@
-const Config = require('./config');
+const { Config } = require('../config');
+const { OCRService } = require('../services');
 
-
-const handleOCRInput = async (kafka, message)  =>  {
+const handleOCRInput = async (kafka, db, message)  =>  {
   const data = JSON.parse(message.value.toString());
 
   if (!data.body.email || !data.body.fileUrl || !data.producer) {
@@ -9,9 +9,14 @@ const handleOCRInput = async (kafka, message)  =>  {
     return;
   }
 
+  
   console.log('Processing data using OCR');
-  const file = readDataFromDb(data.body.fileUrl);
-  const processedDataUrl = await ocrProcess(file);
+
+  const file = await db.readUrl(data.body.fileUrl);
+
+  const processedFile = await OCRService.processFile(file);
+  const processedFileUrl = await db.write(processedFile);
+  
   console.log('Data processed, publishing to data extraction output topic');
 
   const content = {
@@ -19,7 +24,7 @@ const handleOCRInput = async (kafka, message)  =>  {
     destination: data.producer,
     body: {
       email: data.body.email,
-      fileUrl: processedDataUrl,
+      fileUrl: processedFileUrl,
     }
   }
 
@@ -36,24 +41,6 @@ const handleOCRInput = async (kafka, message)  =>  {
     });   
 }
 
-function readDataFromDb(fileUrl) {
-  return "Raw File data";
-}
-
-function writeDataToDb(data) {
-  return "http://db.com/processed-data/12345";
-}
-
-async function ocrProcess(fileUrl)  {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const data = "Processed data";
-      console.log('Data processed, saving to database');
-      const url = writeDataToDb(data);
-      resolve(url);
-    }, 2000);
-  });
-}
 
 module.exports = {
   handleOCRInput

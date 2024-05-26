@@ -1,4 +1,3 @@
-
 class Config{
   static clientId = 'notification-service'
   
@@ -22,4 +21,6 @@ class Config{
 }
 
 
-module.exports = Config;
+module.exports = {
+  Config
+};
